@@ -6,11 +6,17 @@ struct ChatView: View {
 
     @State private var input = ""
     @State private var threadID: UUID?
-    @State private var showHandoff = false
-    @State private var showTeam = false
-    @State private var showModelPicker = false
-    @State private var showEdit = false
-    @State private var showHistory = false
+    @State private var sheet: ChatSheet?
+
+    enum ChatSheet: Identifiable {
+        case handoff
+        case team
+        case models
+        case edit
+        case history
+
+        var id: String { String(describing: self) }
+    }
 
     private var bot: Bot? { store.bot(botID) }
     private var thread: ChatThread? { threadID.flatMap { store.thread($0) } }
@@ -29,7 +35,7 @@ struct ChatView: View {
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
-                    showHandoff = true
+                    sheet = .handoff
                 } label: {
                     Image(systemName: "arrow.triangle.branch")
                 }
@@ -40,16 +46,16 @@ struct ChatView: View {
                         threadID = store.newThread(for: botID)
                     } label: { Label("新对话", systemImage: "square.and.pencil") }
                     Button {
-                        showHistory = true
+                        sheet = .history
                     } label: { Label("历史对话", systemImage: "clock.arrow.circlepath") }
                     Button {
-                        showModelPicker = true
+                        sheet = .models
                     } label: { Label("切换模型", systemImage: "cpu") }
                     Button {
-                        showTeam = true
+                        sheet = .team
                     } label: { Label("团队任务", systemImage: "person.3") }
                     Button {
-                        showEdit = true
+                        sheet = .edit
                     } label: { Label("编辑联系人", systemImage: "pencil") }
                     Divider()
                     Button(role: .destructive) {
@@ -62,29 +68,28 @@ struct ChatView: View {
         }
         .onAppear(perform: ensureThread)
         .onChange(of: botID) { _, _ in ensureThread() }
-        .sheet(isPresented: $showHandoff) {
-            HandoffSheet(threadID: threadID)
-                .environmentObject(store)
-        }
-        .sheet(isPresented: $showTeam) {
-            TeamRunSheet(threadID: threadID)
-                .environmentObject(store)
-        }
-        .sheet(isPresented: $showModelPicker) {
-            if let bot {
-                ModelPickerSheet(bot: bot)
+        .sheet(item: $sheet) { item in
+            switch item {
+            case .handoff:
+                HandoffSheet(threadID: threadID)
+                    .environmentObject(store)
+            case .team:
+                TeamRunSheet(threadID: threadID)
+                    .environmentObject(store)
+            case .models:
+                if let bot {
+                    ModelPickerSheet(bot: bot)
+                        .environmentObject(store)
+                }
+            case .edit:
+                if let bot {
+                    BotEditView(bot: bot)
+                        .environmentObject(store)
+                }
+            case .history:
+                HistorySheet(botID: botID, selected: $threadID)
                     .environmentObject(store)
             }
-        }
-        .sheet(isPresented: $showEdit) {
-            if let bot {
-                BotEditView(bot: bot)
-                    .environmentObject(store)
-            }
-        }
-        .sheet(isPresented: $showHistory) {
-            HistorySheet(botID: botID, selected: $threadID)
-                .environmentObject(store)
         }
     }
 
@@ -104,7 +109,7 @@ struct ChatView: View {
             }
             Spacer()
             Button {
-                showTeam = true
+                sheet = .team
             } label: {
                 HStack(spacing: 4) {
                     Image(systemName: "person.3")
@@ -229,7 +234,7 @@ struct ChatView: View {
 
     private func handoffFrom(message: ChatMessage) {
         _ = message
-        showHandoff = true
+        sheet = .handoff
     }
 }
 

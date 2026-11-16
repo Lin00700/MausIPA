@@ -226,7 +226,6 @@ enum LLMClient {
                 throw LLMError(message: "Copilot 未登录，请先在渠道里完成设备码登录")
             }
             headers = Copilot.headers(token: secret.inferenceToken, vision: false)
-            body["stream_options"] = ["include_usage": false]
         default:
             if !secret.apiKey.isEmpty {
                 headers["Authorization"] = "Bearer \(secret.apiKey)"

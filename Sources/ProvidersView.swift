@@ -2,9 +2,21 @@ import SwiftUI
 
 struct ProvidersView: View {
     @EnvironmentObject var store: AppStore
-    @State private var editingID: String?
-    @State private var showCopilot = false
-    @State private var showZCode = false
+    @State private var route: Route?
+
+    enum Route: Identifiable {
+        case detail(String)
+        case copilot
+        case zcode
+
+        var id: String {
+            switch self {
+            case .detail(let id): return "detail-" + id
+            case .copilot: return "copilot"
+            case .zcode: return "zcode"
+            }
+        }
+    }
 
     private var builtins: [Provider] {
         store.providers.filter { $0.kind.isBuiltin }
@@ -30,7 +42,7 @@ struct ProvidersView: View {
                     }
                     addButton(title: "添加自定义渠道") {
                         let provider = store.addProvider(kind: .custom)
-                        editingID = provider.id
+                        route = .detail(provider.id)
                     }
 
                     SectionLabel(title: "远程服务", subtitle: "把电脑或 VPS 上自建的助手（OpenMausBot / Timon 等）接进来")
@@ -40,7 +52,7 @@ struct ProvidersView: View {
                     }
                     addButton(title: "添加远程服务") {
                         let provider = store.addProvider(kind: .remote)
-                        editingID = provider.id
+                        route = .detail(provider.id)
                     }
 
                     Text("所有 Key 与令牌只存钥匙串；请求直接从这台 iPhone 发出。")
@@ -54,17 +66,18 @@ struct ProvidersView: View {
             }
             .background(Ink.paper.opacity(0.001))
             .navigationTitle("渠道")
-            .sheet(item: $editingID.asProvider()) { wrapper in
-                ProviderDetailView(providerID: wrapper.id)
-                    .environmentObject(store)
-            }
-            .sheet(isPresented: $showCopilot) {
-                CopilotSignInView(providerID: "copilot")
-                    .environmentObject(store)
-            }
-            .sheet(isPresented: $showZCode) {
-                ZCodeSignInView(providerID: "zcode")
-                    .environmentObject(store)
+            .sheet(item: $route) { item in
+                switch item {
+                case .detail(let id):
+                    ProviderDetailView(providerID: id)
+                        .environmentObject(store)
+                case .copilot:
+                    CopilotSignInView(providerID: "copilot")
+                        .environmentObject(store)
+                case .zcode:
+                    ZCodeSignInView(providerID: "zcode")
+                        .environmentObject(store)
+                }
             }
         }
     }
@@ -86,7 +99,7 @@ struct ProvidersView: View {
 
     private func providerCard(_ provider: Provider) -> some View {
         Button {
-            editingID = provider.id
+            route = .detail(provider.id)
         } label: {
             HStack(spacing: 12) {
                 SealAvatar(text: provider.kind.seal, color: tint(provider), size: 42)
@@ -110,7 +123,7 @@ struct ProvidersView: View {
                 Spacer()
                 if provider.kind == .copilot {
                     Button {
-                        showCopilot = true
+                        route = .copilot
                     } label: {
                         Text("登录")
                             .font(.system(size: 11, weight: .medium))
@@ -123,7 +136,7 @@ struct ProvidersView: View {
                 }
                 if provider.kind == .zcode {
                     Button {
-                        showZCode = true
+                        route = .zcode
                     } label: {
                         Text(store.secret(for: provider.id).zcodeKey.isEmpty ? "登录" : "重登")
                             .font(.system(size: 11, weight: .medium))
@@ -187,20 +200,6 @@ struct ProvidersView: View {
     }
 }
 
-/// 让 String 走 sheet(item:) 的小包装
-struct ProviderIDBox: Identifiable {
-    var id: String
-}
-
-extension Binding where Value == String? {
-    func asProvider() -> Binding<ProviderIDBox?> {
-        Binding<ProviderIDBox?>(
-            get: { wrappedValue.map { ProviderIDBox(id: $0) } },
-            set: { wrappedValue = $0?.id }
-        )
-    }
-}
-
 // MARK: - 渠道详情
 
 struct ProviderDetailView: View {
@@ -213,8 +212,19 @@ struct ProviderDetailView: View {
     @State private var modelText = ""
     @State private var headerText = ""
     @State private var aliases: [AliasPair] = []
-    @State private var showCopilot = false
-    @State private var showZCode = false
+    @State private var signIn: SignInRoute?
+
+    enum SignInRoute: Identifiable {
+        case copilot
+        case zcode
+
+        var id: String {
+            switch self {
+            case .copilot: return "copilot"
+            case .zcode: return "zcode"
+            }
+        }
+    }
     @State private var zcodeSite: ZCodeSite = .zai
     @State private var loaded = false
 
@@ -268,7 +278,7 @@ struct ProviderDetailView: View {
                 if draft.kind == .copilot {
                     Section("登录") {
                         Button {
-                            showCopilot = true
+                            signIn = .copilot
                         } label: {
                             Label(store.secret(for: providerID).oauthToken.isEmpty ? "设备码登录 GitHub" : "重新登录", systemImage: "person.badge.key")
                         }
@@ -286,7 +296,7 @@ struct ProviderDetailView: View {
                             if let site = ZCodeSite(rawValue: zcodeSite.rawValue) {
                                 draft.baseURL = site.anthropicBase
                             }
-                            showZCode = true
+                            signIn = .zcode
                         } label: {
                             Label("用网页登录 ZCode 并自动取 Key", systemImage: "globe.asia.australia")
                         }
@@ -414,13 +424,15 @@ struct ProviderDetailView: View {
                     Button("保存") { commit() }
                 }
             }
-            .sheet(isPresented: $showCopilot) {
-                CopilotSignInView(providerID: providerID)
-                    .environmentObject(store)
-            }
-            .sheet(isPresented: $showZCode) {
-                ZCodeSignInView(providerID: providerID)
-                    .environmentObject(store)
+            .sheet(item: $signIn) { route in
+                switch route {
+                case .copilot:
+                    CopilotSignInView(providerID: providerID)
+                        .environmentObject(store)
+                case .zcode:
+                    ZCodeSignInView(providerID: providerID)
+                        .environmentObject(store)
+                }
             }
             .onAppear(perform: load)
         }

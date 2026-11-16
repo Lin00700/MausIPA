@@ -119,7 +119,7 @@ struct CopilotSignInView: View {
                     }
                 }
             } catch {
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                errorMessage = describeError(error)
                 status = "登录未完成"
             }
         }
@@ -247,7 +247,7 @@ struct ZCodeSignInView: View {
                 try? await Task.sleep(nanoseconds: 700_000_000)
                 dismiss()
             } catch {
-                errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                errorMessage = describeError(error)
                 working = false
             }
         }

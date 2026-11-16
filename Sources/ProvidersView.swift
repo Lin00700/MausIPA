@@ -98,70 +98,67 @@ struct ProvidersView: View {
     }
 
     private func providerCard(_ provider: Provider) -> some View {
-        Button {
-            route = .detail(provider.id)
-        } label: {
-            HStack(spacing: 12) {
-                SealAvatar(text: provider.kind.seal, color: tint(provider), size: 42)
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 6) {
-                        Text(provider.name)
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Ink.inkText)
-                        if !provider.enabled {
-                            TagChip(text: "已停用", tint: Ink.inkFaint)
-                        }
+        HStack(spacing: 12) {
+            SealAvatar(text: provider.kind.seal, color: tint(provider), size: 42)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(provider.name)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Ink.inkText)
+                    if !provider.enabled {
+                        TagChip(text: "已停用", tint: Ink.inkFaint)
                     }
-                    Text(store.secret(for: provider.id).summary(for: provider.kind))
-                        .font(.system(size: 11.5))
-                        .foregroundStyle(provider.kind == .copilot && store.secret(for: provider.id).inferenceToken.isEmpty ? Ink.cinnabarSoft : Ink.inkSoft)
-                    Text(summaryLine(provider))
-                        .font(.system(size: 10.5, design: .monospaced))
-                        .foregroundStyle(Ink.inkFaint)
-                        .lineLimit(1)
                 }
-                Spacer()
-                if provider.kind == .copilot {
-                    Button {
-                        route = .copilot
-                    } label: {
-                        Text("登录")
-                            .font(.system(size: 11, weight: .medium))
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 5)
-                            .background(Capsule().fill(Ink.cinnabar.opacity(0.12)))
-                            .foregroundStyle(Ink.cinnabar)
-                    }
-                    .buttonStyle(.plain)
-                }
-                if provider.kind == .zcode {
-                    Button {
-                        route = .zcode
-                    } label: {
-                        Text(store.secret(for: provider.id).zcodeKey.isEmpty ? "登录" : "重登")
-                            .font(.system(size: 11, weight: .medium))
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 5)
-                            .background(Capsule().fill(Ink.cinnabar.opacity(0.12)))
-                            .foregroundStyle(Ink.cinnabar)
-                    }
-                    .buttonStyle(.plain)
-                }
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11))
+                Text(store.secret(for: provider.id).summary(for: provider.kind))
+                    .font(.system(size: 11.5))
+                    .foregroundStyle(provider.kind == .copilot && store.secret(for: provider.id).inferenceToken.isEmpty ? Ink.cinnabarSoft : Ink.inkSoft)
+                Text(summaryLine(provider))
+                    .font(.system(size: 10.5, design: .monospaced))
                     .foregroundStyle(Ink.inkFaint)
+                    .lineLimit(1)
             }
-            .padding(12)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Ink.paperRaised)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .strokeBorder(Ink.line, lineWidth: 0.8)
-                    )
-            )
+            Spacer()
+            if provider.kind == .copilot {
+                Button {
+                    route = .copilot
+                } label: {
+                    Text("登录")
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(Ink.cinnabar.opacity(0.12)))
+                        .foregroundStyle(Ink.cinnabar)
+                }
+                .buttonStyle(.plain)
+            }
+            if provider.kind == .zcode {
+                Button {
+                    route = .zcode
+                } label: {
+                    Text(store.secret(for: provider.id).zcodeKey.isEmpty ? "登录" : "重登")
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(Ink.cinnabar.opacity(0.12)))
+                        .foregroundStyle(Ink.cinnabar)
+                }
+                .buttonStyle(.plain)
+            }
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11))
+                .foregroundStyle(Ink.inkFaint)
         }
-        .buttonStyle(.plain)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Ink.paperRaised)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .strokeBorder(Ink.line, lineWidth: 0.8)
+                )
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .onTapGesture { route = .detail(provider.id) }
     }
 
     private func summaryLine(_ provider: Provider) -> String {

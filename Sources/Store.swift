@@ -467,7 +467,7 @@ final class AppStore: ObservableObject {
         } catch is CancellationError {
             // 用户手动停止，保留已经生成的部分
         } catch {
-            let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            let message = describeError(error)
             appendNotice(threadID: threadID, "⚠️ \(message)")
             updateMessage(threadID, messageID) { $0.isError = true }
         }
@@ -540,7 +540,7 @@ final class AppStore: ObservableObject {
             }
             toast = "已更新 \(models.count) 个模型"
         } catch {
-            toast = "取模型失败：" + ((error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
+            toast = "取模型失败：" + (describeError(error))
         }
     }
 
@@ -589,7 +589,7 @@ final class AppStore: ObservableObject {
             }
             toast = "可用 · 返回：\(text.trimmed.truncated(40))"
         } catch {
-            toast = "不可用：" + ((error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
+            toast = "不可用：" + (describeError(error))
         }
     }
 
@@ -754,13 +754,13 @@ final class AppStore: ObservableObject {
                 let final: [String: Any] = [
                     "id": completionID, "object": "chat.completion.chunk", "created": created,
                     "model": responseModel,
-                    "choices": [["index": 0, "delta": [:], "finish_reason": "stop"]]
+                    "choices": [["index": 0, "delta": [String: Any](), "finish_reason": "stop"]]
                 ]
                 connection.sendEvent("data: " + jsonText(final) + "\n\n")
                 connection.sendEvent("data: [DONE]\n\n")
                 _ = wrote
             } catch {
-                let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                let message = describeError(error)
                 let chunk: [String: Any] = ["error": ["message": message, "type": "upstream_error"]]
                 connection.sendEvent("data: " + jsonText(chunk) + "\n\n")
             }
@@ -786,7 +786,7 @@ final class AppStore: ObservableObject {
                 ]
                 connection.sendJSON(payload)
             } catch {
-                let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                let message = describeError(error)
                 connection.sendJSON(["error": ["message": message, "type": "upstream_error"]], status: 502)
             }
         }

@@ -262,6 +262,13 @@ struct RemoteModel: Identifiable, Codable, Equatable {
     }
 }
 
+/// 把任意错误变成一句给用户看的话
+func describeError(_ error: Error) -> String {
+    if let llm = error as? LLMError { return llm.message }
+    let text = error.localizedDescription
+    return text.isEmpty ? "未知错误" : text
+}
+
 // MARK: - JSON 小工具
 
 enum JSONValue {

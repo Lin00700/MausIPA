@@ -230,7 +230,7 @@ struct ZCodeSignInView: View {
                 flow = created
                 status = "请在页面中完成登录…"
                 status = "登录中，完成后会自动返回"
-                let secret = try await ZCode.finishSignIn(created)
+                let secret = try await ZCode.finishSignIn(flow: created)
                 var stored = store.secret(for: providerID)
                 stored.zcodeKey = secret.zcodeKey
                 stored.zcodeJWT = secret.zcodeJWT

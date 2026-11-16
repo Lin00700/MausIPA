@@ -1,5 +1,8 @@
 # MausIPA
 
+[![Build unsigned IPA](https://github.com/Lin00700/MausIPA/actions/workflows/build-ipa.yml/badge.svg)](https://github.com/Lin00700/MausIPA/actions/workflows/build-ipa.yml)
+[![Latest release](https://img.shields.io/github/v/release/Lin00700/MausIPA?label=IPA&color=b0342a)](https://github.com/Lin00700/MausIPA/releases/latest)
+
 一台 iPhone 上的自签 AI 助手：**把每个 AI 当成一个联系人**，水墨风格，渠道自带，局域网可当 `/v1` 网关用。
 
 不用电脑、不用 VPS，也不需要 Apple 开发者账号 —— GitHub Actions 直接编译出未签名 `.ipa`，用 TrollStore / AltStore / SideStore / Sideloadly 自签安装。
@@ -37,9 +40,14 @@
 
 ## 安装
 
-1. 在仓库的 **Actions** 里下载最新一次构建的 artifact `MausIPA-unsigned-ipa`（或 Releases 里的 `build-N`）。
-2. 解压得到 `MausIPA-unsigned.ipa`。
-3. 用 TrollStore、AltStore、SideStore 或 Sideloadly 自签安装。
+1. 打开 [最新 release](https://github.com/Lin00700/MausIPA/releases/latest)，下载 `MausIPA-unsigned.ipa`（也可以在 Actions 的 artifact 里取）。
+2. 用 TrollStore、AltStore、SideStore 或 Sideloadly 自签安装。
+
+## 上手三步
+
+1. **渠道**：Zen 免费开箱即用；Copilot 点「登录」走设备码；ZCode 点「登录」在网页里登录 Z.ai / 智谱账号，自动取回 API Key。
+2. **对话**：联系人卡片上长按可改人格、记忆、模型；点开就聊。
+3. **团队**：给不同角色绑不同模型，对话里点「接力」，或在「团队任务」里排顺序一次跑完。
 
 ## 自己编译
 

@@ -307,7 +307,7 @@ final class AppStore: ObservableObject {
     func handoff(threadID: UUID, role: TeamRole) {
         guard !isGenerating else { return }
         guard let thread = thread(threadID) else { return }
-        guard let last = thread.messages.last(where: { $0.role == .assistant && !$0.text.trimmed.isEmpty }) else {
+        guard let last = thread.messages.last(where: { $0.role == .assistant && !$0.isError && !$0.text.trimmed.isEmpty }) else {
             toast = "还没有可以接力的回答"
             return
         }

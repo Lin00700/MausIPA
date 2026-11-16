@@ -105,9 +105,34 @@ enum Zen {
         return free.isEmpty ? all : free.sorted()
     }
 
+    /// OpenCode 2 自己的五个核心工具；Zen 的免费层有时要求请求里带工具，这些描述写明「不可用」，模型就不会真去调。
+    static var coreTools: [[String: Any]] {
+        let specs: [(String, String)] = [
+            ("edit", "Replace text in a file. Not available in this environment."),
+            ("glob", "Find files by pattern. Not available in this environment."),
+            ("grep", "Search file contents. Not available in this environment."),
+            ("read", "Read a file. Not available in this environment."),
+            ("shell", "Run a shell command. Not available in this environment.")
+        ]
+        return specs.map { name, description in
+            let parameter = name == "shell" ? "command" : (name == "edit" || name == "read" ? "path" : "pattern")
+            let properties: [String: Any] = [parameter: ["type": "string"] as [String: Any]]
+            let parameters: [String: Any] = [
+                "type": "object",
+                "properties": properties,
+                "required": [parameter]
+            ]
+            let function: [String: Any] = [
+                "name": name,
+                "description": description,
+                "parameters": parameters
+            ]
+            return ["type": "function", "function": function] as [String: Any]
+        }
+    }
+
     static let defaultModels = [
-        "big-pickle",
-        "deepseek-v4.1-flash-free",
+        "big-pickle",        "deepseek-v4.1-flash-free",
         "step-5-preview-free",
         "longcat-2.5-preview-free",
         "mimo-v2.6-flash-free",

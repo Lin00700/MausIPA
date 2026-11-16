@@ -228,14 +228,8 @@ struct ChatView: View {
     }
 
     private func handoffFrom(message: ChatMessage) {
-        guard let threadID else { return }
-        if let role = store.roles.first(where: { role in
-            role.name == message.roleLabel
-        }) {
-            store.handoff(threadID: threadID, role: role)
-        } else {
-            showHandoff = true
-        }
+        _ = message
+        showHandoff = true
     }
 }
 

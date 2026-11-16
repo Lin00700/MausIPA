@@ -236,10 +236,21 @@ enum LLMClient {
 
         let url = chatEndpoint(provider.baseURL)
         let request = try Net.jsonRequest(url, headers: headers, json: body)
-        try await consume(request) { payload in
+
+        var produced = false
+        let emit: (String) -> Void = { payload in
             if let events = parseOpenAI(payload) {
                 for event in events { continuation.yield(event) }
+                if !events.isEmpty { produced = true }
             }
+        }
+        do {
+            try await consume(request, emit)
+        } catch let error as LLMError where provider.kind == .zenFree && !produced && (error.status == 403 || error.status == 429) {
+            // Zen 的免费层偶尔要求请求带工具，带上 OpenCode 自己的五个核心工具（标注为不可用）再试一次
+            body["tools"] = Zen.coreTools
+            let retry = try Net.jsonRequest(url, headers: headers, json: body)
+            try await consume(retry, emit)
         }
     }
 

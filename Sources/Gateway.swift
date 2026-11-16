@@ -124,9 +124,11 @@ final class GatewayConnection {
     }
 
     func close() {
-        guard !closed else { return }
-        closed = true
-        connection.cancel()
+        queue.async { [weak self] in
+            guard let self, !self.closed else { return }
+            self.closed = true
+            self.connection.cancel()
+        }
     }
 
     private func receive() {
@@ -188,8 +190,7 @@ final class GatewayConnection {
                 "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
                 "Access-Control-Max-Age": "86400"
             ])
-            closeWhenDrained = true
-            pump()
+            finish(chunked: false)
             handled = true
             return true
         }
@@ -203,7 +204,11 @@ final class GatewayConnection {
         return true
     }
 
-    // MARK: 回写
+    // MARK: 回写（全部在 queue 上串行执行）
+
+    private func onQueue(_ block: @escaping () -> Void) {
+        queue.async(execute: block)
+    }
 
     func sendHead(_ status: Int, contentType: String, chunked: Bool, extra: [String: String] = [:]) {
         var lines = [
@@ -220,17 +225,28 @@ final class GatewayConnection {
             lines.append("\(key): \(value)")
         }
         let head = lines.joined(separator: "\r\n") + "\r\n\r\n"
-        enqueue(Data(head.utf8))
+        let data = Data(head.utf8)
+        onQueue { [weak self] in
+            guard let self, !self.closed else { return }
+            self.pending.append(data)
+            self.pump()
+        }
     }
 
     func sendBody(_ data: Data, chunked: Bool) {
+        let payload: Data
         if chunked {
             var framed = Data("\(String(data.count, radix: 16))\r\n".utf8)
             framed.append(data)
             framed.append(Data("\r\n".utf8))
-            enqueue(framed)
+            payload = framed
         } else {
-            enqueue(data)
+            payload = data
+        }
+        onQueue { [weak self] in
+            guard let self, !self.closed else { return }
+            self.pending.append(payload)
+            self.pump()
         }
     }
 
@@ -239,24 +255,34 @@ final class GatewayConnection {
     }
 
     func finish(chunked: Bool) {
-        if chunked {
-            enqueue(Data("0\r\n\r\n".utf8))
+        onQueue { [weak self] in
+            guard let self, !self.closed else { return }
+            if chunked { self.pending.append(Data("0\r\n\r\n".utf8)) }
+            self.closeWhenDrained = true
+            self.pump()
         }
-        closeWhenDrained = true
-        pump()
     }
 
     func sendJSON(_ object: Any, status: Int = 200) {
         let data = (try? JSONSerialization.data(withJSONObject: object)) ?? Data("{}".utf8)
-        sendHead(status, contentType: "application/json; charset=utf-8", chunked: false, extra: ["Content-Length": "\(data.count)"])
-        sendBody(data, chunked: false)
-        closeWhenDrained = true
-        pump()
-    }
-
-    private func enqueue(_ data: Data) {
-        pending.append(data)
-        pump()
+        var lines = [
+            "HTTP/1.1 \(status) \(reason(status))",
+            "Content-Type: application/json; charset=utf-8",
+            "Content-Length: \(data.count)",
+            "Access-Control-Allow-Origin: *",
+            "Connection: close",
+            "Cache-Control: no-store"
+        ]
+        lines.append("")
+        lines.append("")
+        let head = Data(lines.joined(separator: "\r\n").utf8)
+        onQueue { [weak self] in
+            guard let self, !self.closed else { return }
+            self.pending.append(head)
+            self.pending.append(data)
+            self.closeWhenDrained = true
+            self.pump()
+        }
     }
 
     private func pump() {
